@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script de instalación para Sistema de Inscripción de Cursos (Yii2 Básico)
-# Versión: 6.0 - Limpieza 100% funcional
+# Versión: pre-0.1
 
 # =====================================================
 # COLORES Y FUNCIONES BASE
@@ -272,6 +272,7 @@ CREATE TABLE public_user_tab (
     "phone" VARCHAR(20),
     "email" VARCHAR(100) NOT NULL,
     "age" INTEGER,
+    "ci" INTEGER,
     "public_entity" VARCHAR(100),
     "n_courses_enrollment" INTEGER DEFAULT 0
 );
@@ -337,7 +338,7 @@ RewriteRule . index.php [L]" > "$APP_DIR/web/.htaccess"
 # =====================================================
 # LIMPIEZA TOTAL
 # =====================================================
-cleanup() {
+ ncleanup() {
     print_header "LIMPIEZA TOTAL"
 
     # Detectar valores

@@ -14,6 +14,7 @@ use yii\db\ActiveRecord;
  * @property string|null $phone
  * @property string $email
  * @property int|null $age
+ * @property int|null $ci
  * @property string|null $public_entity
  * @property int $n_courses_enrollment
  *
@@ -30,8 +31,10 @@ class PublicUserTab extends ActiveRecord
     {
         return [
             [['name', 'last_name', 'email'], 'required'],
-            [['age', 'n_courses_enrollment'], 'integer'],
+            [['age', 'n_courses_enrollment', 'ci'], 'integer'],
             [['age'], 'integer', 'min' => 1, 'max' => 120],
+            [['ci'], 'integer', 'min' => 0, 'max' => 1000000000],  // ← NUEVO
+            [['ci'], 'unique', 'message' => 'Esta cédula ya está registrada.'],  // ← Único
             [['name', 'last_name', 'public_entity'], 'string', 'max' => 100],
             [['phone'], 'string', 'max' => 20],
             [['email'], 'string', 'max' => 100],
@@ -49,6 +52,7 @@ class PublicUserTab extends ActiveRecord
             'phone'                 => 'Teléfono',
             'email'                 => 'Correo electrónico',
             'age'                   => 'Edad',
+            'ci'                    => 'Cédula de Identidad',  // ← NUEVO
             'public_entity'         => 'Entidad pública',
             'n_courses_enrollment'  => 'Total cursos inscritos',
         ];
