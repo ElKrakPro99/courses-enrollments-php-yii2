@@ -1,9 +1,11 @@
 <?php
 
+# //views/public-user/enroll.php
+
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
 
-$this->title = 'Inscripción: ' . $course->course_name;
+$this->title = 'Inscripcion: ' . $course->course_name;
 ?>
 
 <div class="public-enroll">
@@ -11,31 +13,54 @@ $this->title = 'Inscripción: ' . $course->course_name;
 
     <div class="row">
         <div class="col-md-8">
+            <!-- Datos del curso -->
             <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <strong>Datos del curso</strong>
+                </div>
                 <div class="card-body">
-                    <h5>Datos del curso</h5>
-                    <p><strong>Docente:</strong> <?= Html::encode($course->teacher_name) ?></p>
-                    <p><strong>Período:</strong> <?= $course->date_begin_enrollments ?> al <?= $course->date_end_enrollments ?></p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Categoria:</strong> <?= Html::encode($course->category) ?></p>
+                            <p><strong>Docente:</strong> <?= Html::encode($course->teacher_name) ?></p>
+                            <p><strong>Modalidad:</strong> <?= Html::encode($course->modality) ?></p>
+                            <p><strong>Tipo:</strong> <?= $course->payment_type === 'pago' ? 'Pago' : 'Libre' ?></p>
+                            <?php if ($course->class_days): ?>
+                                <p><strong>Dias de clase:</strong> <?= Html::encode($course->class_days) ?></p>
+                            <?php endif; ?>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Inscripciones:</strong><br>
+                                <?= $course->date_begin_enrollments ?> al <?= $course->date_end_enrollments ?>
+                            </p>
+                            <p><strong>Clases:</strong><br>
+                                <?= $course->date_begin_course ?> al <?= $course->date_end_course ?>
+                            </p>
+                            <p><strong>Inscritos:</strong> <?= $course->enrollments_counter ?></p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
+            <!-- Formulario de inscripcion -->
             <div class="card">
+                <div class="card-header bg-success text-white">
+                    <strong>Datos personales</strong>
+                </div>
                 <div class="card-body">
-                    <h5>Datos personales</h5>
-                    
                     <?php $form = ActiveForm::begin(); ?>
                         <?= Html::hiddenInput('course_id', $course->id) ?>
 
                         <div class="row">
                             <div class="col-md-6">
                                 <?= $form->field($model, 'name')->textInput([
-                                    'maxlength' => true, 
+                                    'maxlength' => true,
                                     'placeholder' => 'Nombre'
                                 ]) ?>
                             </div>
                             <div class="col-md-6">
                                 <?= $form->field($model, 'last_name')->textInput([
-                                    'maxlength' => true, 
+                                    'maxlength' => true,
                                     'placeholder' => 'Apellido'
                                 ]) ?>
                             </div>
@@ -51,7 +76,7 @@ $this->title = 'Inscripción: ' . $course->course_name;
                             </div>
                             <div class="col-md-4">
                                 <?= $form->field($model, 'email')->textInput([
-                                    'maxlength' => true, 
+                                    'maxlength' => true,
                                     'placeholder' => 'correo@ejemplo.com'
                                 ]) ?>
                             </div>
@@ -68,20 +93,20 @@ $this->title = 'Inscripción: ' . $course->course_name;
                         <div class="row">
                             <div class="col-md-6">
                                 <?= $form->field($model, 'phone')->textInput([
-                                    'maxlength' => true, 
+                                    'maxlength' => true,
                                     'placeholder' => 'Ej: +58 424 1234567'
                                 ]) ?>
                             </div>
                             <div class="col-md-6">
                                 <?= $form->field($model, 'public_entity')->textInput([
-                                    'maxlength' => true, 
-                                    'placeholder' => 'Ej: Ministerio de Educación'
+                                    'maxlength' => true,
+                                    'placeholder' => 'Ej: Ministerio de Educacion'
                                 ]) ?>
                             </div>
                         </div>
 
                         <div class="form-group mt-3">
-                            <?= Html::submitButton('Confirmar inscripción', [
+                            <?= Html::submitButton('Confirmar inscripcion', [
                                 'class' => 'btn btn-success btn-lg'
                             ]) ?>
                             <?= Html::a('Cancelar', ['available-courses'], [
@@ -93,13 +118,34 @@ $this->title = 'Inscripción: ' . $course->course_name;
             </div>
         </div>
 
+        <!-- Panel informativo -->
         <div class="col-md-4">
-            <div class="card">
+            <div class="card mb-3">
                 <div class="card-header bg-info text-white">
-                    <strong>Información</strong>
+                    <strong>Informacion</strong>
                 </div>
                 <div class="card-body">
-                    <p><small>Complete todos los campos requeridos. La cédula de identidad es única y nos permite identificarlo en futuras inscripciones.</small></p>
+                    <p>Complete todos los campos requeridos. La cedula de identidad es unica y permite identificarlo en futuras inscripciones.</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <strong>Resumen del curso</strong>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><strong>Curso:</strong> <?= Html::encode($course->course_name) ?></li>
+                        <li><strong>Categoria:</strong> <?= Html::encode($course->category) ?></li>
+                        <li><strong>Modalidad:</strong> <?= Html::encode($course->modality) ?></li>
+                        <li><strong>Docente:</strong> <?= Html::encode($course->teacher_name) ?></li>
+                        <?php if ($course->class_days): ?>
+                            <li><strong>Dias:</strong> <?= Html::encode($course->class_days) ?></li>
+                        <?php endif; ?>
+                        <li><strong>Inicio clases:</strong> <?= $course->date_begin_course ?></li>
+                        <li><strong>Fin clases:</strong> <?= $course->date_end_course ?></li>
+                        <li><strong>Tipo:</strong> <?= $course->payment_type === 'pago' ? 'Pago' : 'Libre' ?></li>
+                    </ul>
                 </div>
             </div>
         </div>

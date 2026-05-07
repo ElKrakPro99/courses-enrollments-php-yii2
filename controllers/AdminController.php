@@ -6,8 +6,10 @@ use Yii;
 use yii\web\Controller;
 use yii\filters\AccessControl;
 use app\models\AdminTab;
+use app\models\ManagerTab;
 use app\models\CoursesTab;
 use app\models\EnrollmentsTab;
+use app\models\UserIdentity;
 
 class AdminController extends Controller
 {
@@ -16,11 +18,13 @@ class AdminController extends Controller
         return [
             'access' => [
                 'class' => AccessControl::class,
-                'only'  => ['dashboard', 'create-course', 'update-course', 'delete-course', 'metrics', 'delete-enrollment'],
+                'only' => ['dashboard', 'create-course', 'update-course', 'delete-course', 'metrics', 'delete-enrollment', 'managers', 'create-manager', 'update-manager', 'delete-manager'],
                 'rules' => [
                     [
-                        'allow'   => true,
-                        'roles'   => ['@'],
+                        'allow' => true,
+                        'matchCallback' => function () {
+                            return !Yii::$app->user->isGuest && Yii::$app->user->identity->isAdmin();
+                        },
                     ],
                 ],
             ],
@@ -38,24 +42,25 @@ class AdminController extends Controller
         if ($model->load(Yii::$app->request->post()) && $model->validate()) {
             $admin = AdminTab::findByUsername($model->user_nickname);
             if ($admin && $admin->validatePassword($model->hash_pass)) {
-                // Login exitoso - usar el modelo encontrado en BD, no el del formulario
-                Yii::$app->user->login($admin, 86400);
-                Yii::$app->session->setFlash('success', 'Bienvenido al panel de administración.');
+                $identity = new UserIdentity([
+                    'id' => $admin->id,
+                    'username' => $admin->user_nickname,
+                    'role' => 'admin',
+                    'model' => $admin,
+                ]);
+                Yii::$app->user->login($identity, 86400);
+                Yii::$app->session->setFlash('success', 'Bienvenido Admin.');
                 return $this->redirect(['dashboard']);
             }
-            // Error de autenticación
             Yii::$app->session->setFlash('error', 'Usuario o contraseña incorrectos.');
         }
 
-        // Limpiar campo de contraseña por seguridad
-        $model->hash_pass = '';
         return $this->render('login', ['model' => $model]);
     }
 
     public function actionLogout()
     {
         Yii::$app->user->logout();
-        Yii::$app->session->setFlash('info', 'Sesión cerrada correctamente.');
         return $this->redirect(['login']);
     }
 
@@ -68,71 +73,111 @@ class AdminController extends Controller
     public function actionCreateCourse()
     {
         $model = new CoursesTab();
-
         if ($model->load(Yii::$app->request->post()) && $model->save()) {
-            Yii::$app->session->setFlash('success', 'Curso creado exitosamente.');
+            Yii::$app->session->setFlash('success', 'Curso creado.');
             return $this->redirect(['dashboard']);
         }
-
         return $this->render('create-course', ['model' => $model]);
     }
 
     public function actionUpdateCourse($id)
     {
-        $model = CoursesTab::findOne($id);
-        if ($model === null) {
-            throw new \yii\web\NotFoundHttpException('Curso no encontrado.');
-        }
-
+        $model = CoursesTab::findOne($id); 
         if ($model->load(Yii::$app->request->post()) && $model->save()) {
-            Yii::$app->session->setFlash('success', 'Curso actualizado correctamente.');
+            Yii::$app->session->setFlash('success', 'Curso actualizado.');
             return $this->redirect(['dashboard']);
         }
-
         return $this->render('update-course', ['model' => $model]);
     }
 
     public function actionDeleteCourse($id)
     {
-        $model = CoursesTab::findOne($id);
-        if ($model !== null) {
-            $model->delete();
-            Yii::$app->session->setFlash('success', 'Curso eliminado correctamente.');
-        }
+        CoursesTab::findOne($id)?->delete();
+        Yii::$app->session->setFlash('success', 'Curso eliminado.');
         return $this->redirect(['dashboard']);
     }
 
     public function actionMetrics($id)
     {
         $course = CoursesTab::findOne($id);
-        if ($course === null) {
-            throw new \yii\web\NotFoundHttpException('Curso no encontrado.');
-        }
-
-        $enrollments = EnrollmentsTab::find()
-            ->where(['course_id' => $id])
-            ->with('publicUser')
-            ->orderBy(['id' => SORT_DESC])
-            ->all();
-
-        $count = count($enrollments);
-
+        $enrollments = EnrollmentsTab::find()->where(['course_id' => $id])->with('publicUser')->all();
         return $this->render('metrics', [
-            'course'      => $course,
+            'course' => $course,
             'enrollments' => $enrollments,
-            'count'       => $count,
+            'count' => count($enrollments),
         ]);
     }
 
     public function actionDeleteEnrollment($id)
     {
         $enrollment = EnrollmentsTab::findOne($id);
-        if ($enrollment !== null) {
-            $courseId = $enrollment->course_id;
-            $enrollment->delete();
-            Yii::$app->session->setFlash('success', 'Inscripción eliminada.');
-            return $this->redirect(['metrics', 'id' => $courseId]);
+        $enrollment?->delete();
+        Yii::$app->session->setFlash('success', 'Inscripción eliminada.');
+        return $this->redirect(Yii::$app->request->referrer ?: ['dashboard']);
+    }
+
+    // ----- Gestión de Managers -----
+    public function actionManagers()
+    {
+        $managers = ManagerTab::find()->all();
+        return $this->render('managers', [
+            'managers' => $managers,
+            'model' => new ManagerTab(),
+            'action' => 'list',
+        ]);
+    }
+
+    public function actionCreateManager()
+    {
+        $model = new ManagerTab(['scenario' => 'create']);
+        
+        if ($model->load(Yii::$app->request->post())) {
+            $model->hash_pass = Yii::$app->security->generatePasswordHash($model->hash_pass);
+            if ($model->save()) {
+                Yii::$app->session->setFlash('success', 'Manager creado.');
+                return $this->redirect(['managers']);
+            }
         }
-        return $this->redirect(['dashboard']);
+        
+        $managers = ManagerTab::find()->all();
+        return $this->render('managers', [          // ← cambiar a 'managers'
+            'managers' => $managers,
+            'model' => $model,
+            'action' => 'create',
+        ]);
+    }
+
+    public function actionUpdateManager($id)
+    {
+        $model = ManagerTab::findOne($id);
+        if (!$model) {
+            throw new \yii\web\NotFoundHttpException('Manager no encontrado.');
+        }
+        
+        if ($model->load(Yii::$app->request->post())) {
+            if (!empty($model->hash_pass)) {
+                $model->hash_pass = Yii::$app->security->generatePasswordHash($model->hash_pass);
+            } else {
+                $model->hash_pass = $model->getOldAttribute('hash_pass');
+            }
+            if ($model->save()) {
+                Yii::$app->session->setFlash('success', 'Manager actualizado.');
+                return $this->redirect(['managers']);
+            }
+        }
+        
+        $managers = ManagerTab::find()->all();
+        return $this->render('managers', [          // ← cambiar a 'managers'
+            'managers' => $managers,
+            'model' => $model,
+            'action' => 'update',
+        ]);
+    }
+
+    public function actionDeleteManager($id)
+    {
+        ManagerTab::findOne($id)?->delete();
+        Yii::$app->session->setFlash('success', 'Manager eliminado.');
+        return $this->redirect(['managers']);
     }
 }

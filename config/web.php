@@ -2,7 +2,7 @@
 
 $config = [
     'id'         => 'course-enrollment',
-    'name'       => 'Sistema de Inscripción de Cursos',
+    'name'       => 'Sistema de Inscripción para formación',
     'basePath'   => dirname(__DIR__),
     'bootstrap'  => ['log'],
     'aliases'    => [
@@ -17,9 +17,9 @@ $config = [
             'class' => 'yii\caching\FileCache',
         ],
         'user' => [
-            'identityClass'   => 'app\models\AdminTab',
+            'identityClass'   => 'app\models\UserIdentity',
             'enableAutoLogin' => false,
-            'loginUrl'        => ['admin/login'],
+            'loginUrl'        => ['/'],
         ],
         'errorHandler' => [
             'errorAction' => 'site/error',
@@ -47,16 +47,29 @@ $config = [
                 'cursos'                          => 'public-user/available-courses',
                 'curso/<id:\d+>'                  => 'public-user/course-data',
                 'inscripcion/<course_id:\d+>'      => 'public-user/enroll',
-                
-                // Rutas administrativas
-                'admin'                           => 'admin/dashboard',
-                'admin/login'                     => 'admin/login',
-                'admin/logout'                    => 'admin/logout',
-                'admin/crear-curso'               => 'admin/create-course',
-                'admin/editar-curso/<id:\d+>'     => 'admin/update-course',
-                'admin/eliminar-curso/<id:\d+>'   => 'admin/delete-course',
-                'admin/metricas/<id:\d+>'         => 'admin/metrics',
+
+                // Admin
+                'admin/login' => 'admin/login',
+                'admin/logout' => 'admin/logout',
+                'admin' => 'admin/dashboard',
+                'admin/crear-curso' => 'admin/create-course',
+                'admin/editar-curso/<id:\d+>' => 'admin/update-course',
+                'admin/eliminar-curso/<id:\d+>' => 'admin/delete-course',
+                'admin/metricas/<id:\d+>' => 'admin/metrics',
                 'admin/eliminar-inscripcion/<id:\d+>' => 'admin/delete-enrollment',
+                // Gestión de managers (solo admin)
+                'admin/managers' => 'admin/managers',
+                'admin/crear-manager' => 'admin/create-manager',
+                'admin/editar-manager/<id:\d+>' => 'admin/update-manager',
+                'admin/eliminar-manager/<id:\d+>' => 'admin/delete-manager',
+
+                // Manager
+                'manager/login' => 'manager/login',
+                'manager/logout' => 'manager/logout',
+                'manager' => 'manager/dashboard',
+                'manager/crear-curso' => 'manager/create-course',
+                'manager/editar-curso/<id:\d+>' => 'manager/update-course',
+                'manager/metricas/<id:\d+>' => 'manager/metrics',
                 
                 // Ruta principal
                 ''                                => 'public-user/available-courses',

@@ -1,5 +1,7 @@
 <?php
 
+// services/CourseService.php
+
 namespace app\services;
 
 use Yii;
@@ -9,10 +11,10 @@ use app\models\PublicUserTab;
 use yii\web\NotFoundHttpException;
 use yii\web\ForbiddenHttpException;
 
-class CourseService
+class publicCourseService
 {
     /**
-     * Obtiene los cursos cuyo período de inscripción está activo hoy.
+     * Obtiene los cursos cuyo periodo de inscripcion esta activo hoy.
      * @return CoursesTab[]
      */
     public function getAvailableCourses()
@@ -27,7 +29,7 @@ class CourseService
     }
 
     /**
-     * Obtiene un curso por ID solo si está dentro del período de inscripción.
+     * Obtiene un curso por ID solo si esta dentro del periodo de inscripcion.
      * @param int $id
      * @return CoursesTab
      * @throws NotFoundHttpException
@@ -44,8 +46,8 @@ class CourseService
         $today = date('Y-m-d');
         if ($today < $course->date_begin_enrollments || $today > $course->date_end_enrollments) {
             throw new ForbiddenHttpException(
-                'Este curso no está disponible para inscripción en este momento. ' .
-                'Período: ' . $course->date_begin_enrollments . ' al ' . $course->date_end_enrollments
+                'Este curso no esta disponible para inscripcion en este momento. ' .
+                'Periodo: ' . $course->date_begin_enrollments . ' al ' . $course->date_end_enrollments
             );
         }
 
@@ -53,7 +55,7 @@ class CourseService
     }
 
     /**
-     * Registra la inscripción de un usuario en un curso.
+     * Registra la inscripcion de un usuario en un curso.
      * @param PublicUserTab $user
      * @param int $courseId
      * @return bool
@@ -69,10 +71,11 @@ class CourseService
                 'course_id' => $courseId,
                 'user_id'   => $user->id,
             ])
+            ->andWhere(['!=', 'status', EnrollmentsTab::STATUS_CANCELLED])
             ->exists();
 
         if ($exists) {
-            throw new \Exception('Ya estás inscrito en este curso. No puedes inscribirte dos veces.');
+            throw new \Exception('Ya estas inscrito en este curso.');
         }
 
         $transaction = Yii::$app->db->beginTransaction();
@@ -85,12 +88,12 @@ class CourseService
             $enrollment->date_end_enrollments   = $course->date_end_enrollments;
             $enrollment->teacher_name           = $course->teacher_name;
             $enrollment->counter_enrollments    = 1;
+            $enrollment->status                 = EnrollmentsTab::STATUS_PENDING;
 
             if (!$enrollment->save()) {
-                throw new \Exception('Error al registrar la inscripción: ' . json_encode($enrollment->errors));
+                throw new \Exception('Error al registrar la inscripcion: ' . json_encode($enrollment->errors));
             }
 
-            // Actualizar contadores
             $user->updateCounters(['n_courses_enrollment' => 1]);
             $course->updateCounters(['enrollments_counter' => 1]);
 
@@ -102,4 +105,5 @@ class CourseService
             throw $e;
         }
     }
+
 }

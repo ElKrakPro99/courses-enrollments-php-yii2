@@ -4,14 +4,14 @@ namespace app\controllers;
 
 use Yii;
 use yii\web\Controller;
-use app\services\CourseService;
+use app\services\PublicCourseService;
 use app\models\PublicUserTab;
 
 class PublicUserController extends Controller
 {
     public function actionAvailableCourses()
     {
-        $service = new CourseService();
+        $service = new PublicCourseService();
         $courses = $service->getAvailableCourses();
 
         return $this->render('available', [
@@ -21,7 +21,7 @@ class PublicUserController extends Controller
 
     public function actionCourseData($id)
     {
-        $service = new CourseService();
+        $service = new PublicCourseService();
 
         try {
             $course = $service->getAvailableCourseById($id);
@@ -37,7 +37,7 @@ class PublicUserController extends Controller
 
     public function actionEnroll($course_id = null)
     {
-        $service = new CourseService();
+        $service = new PublicCourseService();
         $courseId = $course_id ?? Yii::$app->request->post('course_id');
 
         try {

@@ -232,7 +232,7 @@ EOF
 
     if [ "$DB_EXISTS" = "1" ]; then
         if ask_yes_no "La BD '$DB_NAME' ya existe. ¿Eliminarla y recrearla?" "y"; then
-            pg_force_drop_database "$DB_NAME"  # ← USA LA FUNCIÓN CORRECTA
+            pg_force_drop_database "$DB_NAME"
             DB_EXISTS="0"
         fi
     fi
@@ -248,23 +248,44 @@ DROP TABLE IF EXISTS enrollments_tab CASCADE;
 DROP TABLE IF EXISTS db_reference CASCADE;
 DROP TABLE IF EXISTS public_user_tab CASCADE;
 DROP TABLE IF EXISTS courses_tab CASCADE;
+DROP TABLE IF EXISTS manager_tab CASCADE;
 DROP TABLE IF EXISTS admin_tab CASCADE;
 
+-- Tabla de administradores
 CREATE TABLE admin_tab (
     id SERIAL PRIMARY KEY,
     "user_nickname" VARCHAR(50) UNIQUE NOT NULL,
     "hash_pass" VARCHAR(255) NOT NULL
 );
 
+-- Tabla de managers
+CREATE TABLE manager_tab (
+    id SERIAL PRIMARY KEY,
+    "user_nickname" VARCHAR(50) UNIQUE NOT NULL,
+    "hash_pass" VARCHAR(255) NOT NULL
+);
+
+-- Tabla de cursos
 CREATE TABLE courses_tab (
     id SERIAL PRIMARY KEY,
     "course_name" VARCHAR(100) NOT NULL,
+    "category" VARCHAR(50) NOT NULL DEFAULT 'curso',
     "enrollments_counter" INTEGER DEFAULT 0,
     "date_begin_enrollments" DATE NOT NULL,
     "date_end_enrollments" DATE NOT NULL,
-    "teacher_name" VARCHAR(100) NOT NULL
+    "date_begin_course" DATE NOT NULL,
+    "date_end_course" DATE NOT NULL,
+    "class_days" VARCHAR(100),
+    "payment_type" VARCHAR(20) NOT NULL DEFAULT 'libre',
+    "modality" VARCHAR(20) NOT NULL DEFAULT 'presencial',
+    "teacher_name" VARCHAR(100) NOT NULL,
+    CONSTRAINT chk_category CHECK ("category" IN ('curso', 'diplomado', 'taller', 'seminario')),
+    CONSTRAINT chk_payment_type CHECK ("payment_type" IN ('pago', 'libre')),
+    CONSTRAINT chk_modality CHECK ("modality" IN ('online', 'presencial', 'mixto')),
+    CONSTRAINT chk_dates CHECK ("date_begin_course" >= "date_begin_enrollments" AND "date_end_course" >= "date_end_enrollments")
 );
 
+-- Tabla de usuarios publicos
 CREATE TABLE public_user_tab (
     id SERIAL PRIMARY KEY,
     "name" VARCHAR(50) NOT NULL,
@@ -272,11 +293,12 @@ CREATE TABLE public_user_tab (
     "phone" VARCHAR(20),
     "email" VARCHAR(100) NOT NULL,
     "age" INTEGER,
-    "ci" INTEGER,
+    "ci" INTEGER UNIQUE,
     "public_entity" VARCHAR(100),
     "n_courses_enrollment" INTEGER DEFAULT 0
 );
 
+-- Tabla de inscripciones
 CREATE TABLE enrollments_tab (
     id SERIAL PRIMARY KEY,
     "course_id" INTEGER REFERENCES courses_tab(id) ON DELETE CASCADE,
@@ -284,24 +306,44 @@ CREATE TABLE enrollments_tab (
     "date_begin_enrollments" DATE NOT NULL,
     "date_end_enrollments" DATE NOT NULL,
     "counter_enrollments" INTEGER DEFAULT 0,
-    "teacher_name" VARCHAR(100) NOT NULL
+    "teacher_name" VARCHAR(100) NOT NULL,
+    "status" VARCHAR(20) NOT NULL DEFAULT 'pending',
+    CONSTRAINT chk_status CHECK ("status" IN ('pending', 'confirmed', 'cancelled'))
 );
 
+-- Tabla de referencia
 CREATE TABLE db_reference (
     id SERIAL PRIMARY KEY,
     "course_id" INTEGER REFERENCES courses_tab(id) ON DELETE CASCADE
 );
 
-INSERT INTO admin_tab ("user_nickname", "hash_pass") VALUES ('admin', '$ADMIN_HASH') ON CONFLICT DO NOTHING;
-
-INSERT INTO courses_tab ("course_name", "date_begin_enrollments", "date_end_enrollments", "teacher_name") VALUES 
-('Curso de Yii2 Básico', CURRENT_DATE - INTERVAL '1 day', CURRENT_DATE + INTERVAL '30 days', 'Prof. García'),
-('Taller de PostgreSQL', CURRENT_DATE - INTERVAL '5 days', CURRENT_DATE + INTERVAL '15 days', 'Prof. Martínez')
+-- Insertar admin por defecto
+INSERT INTO admin_tab ("user_nickname", "hash_pass") 
+VALUES ('admin', '$ADMIN_HASH') 
 ON CONFLICT DO NOTHING;
 
+-- Insertar manager por defecto (password: manager123)
+INSERT INTO manager_tab ("user_nickname", "hash_pass") 
+VALUES ('manager1', '\$2y\$13\$8oX.tP5q8x6WGXOzYm0aJ.Yx9vN.m8hOeJlLkLRyAvmFQA1ZaBP7K') 
+ON CONFLICT DO NOTHING;
+
+-- Insertar cursos de ejemplo con fechas vigentes
+INSERT INTO courses_tab ("course_name", "category", "date_begin_enrollments", "date_end_enrollments", "date_begin_course", "date_end_course", "class_days", "payment_type", "modality", "teacher_name") VALUES 
+('Curso de Yii2 Basico', 'curso', CURRENT_DATE - INTERVAL '1 day', CURRENT_DATE + INTERVAL '15 days', CURRENT_DATE + INTERVAL '16 days', CURRENT_DATE + INTERVAL '45 days', 'Lunes, Miercoles, Viernes', 'libre', 'online', 'Prof. Garcia'),
+('Taller de PostgreSQL', 'taller', CURRENT_DATE - INTERVAL '5 days', CURRENT_DATE + INTERVAL '10 days', CURRENT_DATE + INTERVAL '11 days', CURRENT_DATE + INTERVAL '25 days', 'Martes, Jueves', 'libre', 'presencial', 'Prof. Martinez'),
+('Diplomado en Desarrollo Web', 'diplomado', CURRENT_DATE, CURRENT_DATE + INTERVAL '30 days', CURRENT_DATE + INTERVAL '31 days', CURRENT_DATE + INTERVAL '120 days', 'Sabados', 'pago', 'mixto', 'Prof. Rodriguez')
+ON CONFLICT DO NOTHING;
+
+-- Otorgar permisos
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "$DB_USER";
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "$DB_USER";
 EOF
+
+    if [ $? -eq 0 ]; then
+        print_success "Tablas creadas correctamente"
+    else
+        print_error "Error al crear las tablas"
+    fi
 
     # Apache
     [ "$PORT" != "80" ] && ! grep -q "Listen $PORT" /etc/apache2/ports.conf && echo "Listen $PORT" >> /etc/apache2/ports.conf
@@ -332,7 +374,7 @@ RewriteRule . index.php [L]" > "$APP_DIR/web/.htaccess"
     chmod -R 755 "$APP_DIR"
     chmod -R 777 "$APP_DIR/runtime" "$APP_DIR/web/assets"
     systemctl restart apache2
-    print_success "¡Instalación completada!"
+    print_success "Instalacion completada!"
 }
 
 # =====================================================

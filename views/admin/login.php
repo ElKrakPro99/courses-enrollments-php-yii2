@@ -1,6 +1,6 @@
-//views/admin/admin.php
-
 <?php
+
+//views/admin/admin.php
 
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;

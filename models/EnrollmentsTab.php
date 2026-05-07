@@ -1,5 +1,7 @@
 <?php
 
+// models/EnrollmentsTab.php
+
 namespace app\models;
 
 use Yii;
@@ -15,12 +17,17 @@ use yii\db\ActiveRecord;
  * @property string $date_end_enrollments
  * @property int $counter_enrollments
  * @property string $teacher_name
+ * @property string $status
  *
  * @property CoursesTab $course
  * @property PublicUserTab $publicUser
  */
 class EnrollmentsTab extends ActiveRecord
 {
+    const STATUS_PENDING = 'pending';
+    const STATUS_CONFIRMED = 'confirmed';
+    const STATUS_CANCELLED = 'cancelled';
+
     public static function tableName()
     {
         return 'enrollments_tab';
@@ -33,6 +40,9 @@ class EnrollmentsTab extends ActiveRecord
             [['course_id', 'user_id', 'counter_enrollments'], 'integer'],
             [['date_begin_enrollments', 'date_end_enrollments'], 'date', 'format' => 'php:Y-m-d'],
             [['teacher_name'], 'string', 'max' => 100],
+            [['status'], 'string', 'max' => 20],
+            [['status'], 'default', 'value' => self::STATUS_PENDING],
+            [['status'], 'in', 'range' => [self::STATUS_PENDING, self::STATUS_CONFIRMED, self::STATUS_CANCELLED]],
             [['course_id'], 'exist', 
                 'skipOnError'     => true, 
                 'targetClass'     => CoursesTab::class, 
@@ -56,7 +66,18 @@ class EnrollmentsTab extends ActiveRecord
             'date_end_enrollments'   => 'Fecha fin',
             'counter_enrollments'    => 'Contador',
             'teacher_name'           => 'Docente',
+            'status'                 => 'Estado',
         ];
+    }
+
+    public function getStatusLabel()
+    {
+        $labels = [
+            self::STATUS_PENDING => 'Pendiente',
+            self::STATUS_CONFIRMED => 'Confirmado',
+            self::STATUS_CANCELLED => 'Cancelado',
+        ];
+        return $labels[$this->status] ?? $this->status;
     }
 
     public function getCourse()

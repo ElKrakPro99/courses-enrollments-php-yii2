@@ -1,5 +1,7 @@
 <?php
 
+// layouts/main.php
+
 /* @var $this \yii\web\View */
 /* @var $content string */
 
@@ -27,35 +29,54 @@ AppAsset::register($this);
 <div class="wrap">
     <?php
     NavBar::begin([
-        'brandLabel' => 'Sistema de Inscripción',
+        'brandLabel' => 'Sistema de Inscripcion',
         'brandUrl' => ['/cursos'],
         'options' => [
             'class' => 'navbar-expand-lg navbar-dark bg-dark',
         ],
     ]);
-    
+
     $menuItems = [
         ['label' => 'Cursos', 'url' => ['/cursos']],
     ];
-    
+
     if (Yii::$app->user->isGuest) {
-        $menuItems[] = ['label' => 'Admin', 'url' => ['/admin/login']];
+        // Usuario no autenticado: mostrar opciones de login
+        $menuItems[] = [
+            'label' => 'Acceso',
+            'items' => [
+                ['label' => 'Admin', 'url' => ['/admin/login']],
+                ['label' => 'Manager', 'url' => ['/manager/login']],
+            ],
+        ];
     } else {
+        // Usuario autenticado: mostrar panel y salir
+        $role = Yii::$app->user->identity->role ?? '';
+        $username = Yii::$app->user->identity->username ?? 'Usuario';
+
+        // Enlace al panel segun el rol
+        if ($role === 'admin') {
+            $menuItems[] = ['label' => 'Panel Admin', 'url' => ['/admin']];
+        } elseif ($role === 'manager') {
+            $menuItems[] = ['label' => 'Panel Manager', 'url' => ['/manager']];
+        }
+
+        // Boton de salir con nombre de usuario y rol
         $menuItems[] = '<li class="nav-item">'
             . Html::beginForm(['/admin/logout'], 'post', ['class' => 'd-flex'])
             . Html::submitButton(
-                'Salir (' . Yii::$app->user->identity->user_nickname . ')',
+                'Salir (' . $username . ' - ' . strtoupper($role) . ')',
                 ['class' => 'btn btn-link nav-link logout']
             )
             . Html::endForm()
             . '</li>';
     }
-    
+
     echo Nav::widget([
         'options' => ['class' => 'navbar-nav ms-auto'],
         'items' => $menuItems,
     ]);
-    
+
     NavBar::end();
     ?>
 
@@ -63,26 +84,26 @@ AppAsset::register($this);
         <?= Breadcrumbs::widget([
             'links' => isset($this->params['breadcrumbs']) ? $this->params['breadcrumbs'] : [],
         ]) ?>
-        
+
         <?php if (Yii::$app->session->hasFlash('success')): ?>
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <?= Yii::$app->session->getFlash('success') ?>
             </div>
         <?php endif; ?>
-        
+
         <?php if (Yii::$app->session->hasFlash('error')): ?>
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <?= Yii::$app->session->getFlash('error') ?>
             </div>
         <?php endif; ?>
-        
+
         <?= $content ?>
     </div>
 </div>
 
 <footer class="footer bg-light mt-5 py-3">
     <div class="container">
-        <span class="text-muted">Sistema de Inscripción de Cursos &copy; <?= date('Y') ?></span>
+        <span class="text-muted">Sistema de Inscripcion de Cursos &copy; <?= date('Y') ?></span>
     </div>
 </footer>
 
