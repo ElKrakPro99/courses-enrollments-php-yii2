@@ -13,6 +13,7 @@ $this->title = 'Panel de Administracion';
         <div class="col-md-12">
             <?= Html::a('+ Crear Nueva Formacion', ['create-course'], ['class' => 'btn btn-success']) ?>
             <?= Html::a('Administrar Managers', ['managers'], ['class' => 'btn btn-primary']) ?>
+            <?= Html::a('Usuarios Publicos', ['public-users'], ['class' => 'btn btn-secondary']) ?>
             <?= Html::a('Ver Cursos Publicos', ['/cursos'], ['class' => 'btn btn-info', 'target' => '_blank']) ?>
             <?= Html::a('Cerrar Sesion', ['logout'], [
                 'class' => 'btn btn-danger',

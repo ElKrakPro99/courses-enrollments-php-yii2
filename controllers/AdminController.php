@@ -7,6 +7,7 @@ use yii\web\Controller;
 use yii\filters\AccessControl;
 use app\models\AdminTab;
 use app\models\ManagerTab;
+use app\models\PaymentTab;
 use app\models\CoursesTab;
 use app\models\EnrollmentsTab;
 use app\models\UserIdentity;
@@ -18,7 +19,15 @@ class AdminController extends Controller
         return [
             'access' => [
                 'class' => AccessControl::class,
-                'only' => ['dashboard', 'create-course', 'update-course', 'delete-course', 'metrics', 'delete-enrollment', 'managers', 'create-manager', 'update-manager', 'delete-manager'],
+                'only' => [
+                    'dashboard',
+                    'create-course', 'update-course', 'delete-course',
+                    'metrics', 'delete-enrollment',
+                    'managers',
+                    'create-manager', 'update-manager', 'delete-manager',
+                    'create-payment-manager', 'update-payment-manager', 'delete-payment-manager',
+                    'public-users', 'delete-public-user',
+                ],
                 'rules' => [
                     [
                         'allow' => true,
@@ -30,6 +39,8 @@ class AdminController extends Controller
             ],
         ];
     }
+
+    // ==================== LOGIN / LOGOUT ====================
 
     public function actionLogin()
     {
@@ -43,10 +54,11 @@ class AdminController extends Controller
             $admin = AdminTab::findByUsername($model->user_nickname);
             if ($admin && $admin->validatePassword($model->hash_pass)) {
                 $identity = new UserIdentity([
-                    'id' => $admin->id,
+                    'id'       => 'admin-' . $admin->id,
                     'username' => $admin->user_nickname,
-                    'role' => 'admin',
-                    'model' => $admin,
+                    'role'     => 'admin',
+                    'model'    => $admin,
+                    'realId'   => $admin->id,
                 ]);
                 Yii::$app->user->login($identity, 86400);
                 Yii::$app->session->setFlash('success', 'Bienvenido Admin.');
@@ -64,11 +76,15 @@ class AdminController extends Controller
         return $this->redirect(['login']);
     }
 
+    // ==================== DASHBOARD ====================
+
     public function actionDashboard()
     {
         $courses = CoursesTab::find()->orderBy(['id' => SORT_DESC])->all();
         return $this->render('dashboard', ['courses' => $courses]);
     }
+
+    // ==================== CURSOS ====================
 
     public function actionCreateCourse()
     {
@@ -82,7 +98,10 @@ class AdminController extends Controller
 
     public function actionUpdateCourse($id)
     {
-        $model = CoursesTab::findOne($id); 
+        $model = CoursesTab::findOne($id);
+        if ($model === null) {
+            throw new \yii\web\NotFoundHttpException('Curso no encontrado.');
+        }
         if ($model->load(Yii::$app->request->post()) && $model->save()) {
             Yii::$app->session->setFlash('success', 'Curso actualizado.');
             return $this->redirect(['dashboard']);
@@ -100,11 +119,17 @@ class AdminController extends Controller
     public function actionMetrics($id)
     {
         $course = CoursesTab::findOne($id);
-        $enrollments = EnrollmentsTab::find()->where(['course_id' => $id])->with('publicUser')->all();
+        if ($course === null) {
+            throw new \yii\web\NotFoundHttpException('Curso no encontrado.');
+        }
+        $enrollments = EnrollmentsTab::find()
+            ->where(['course_id' => $id])
+            ->with('publicUser')
+            ->all();
         return $this->render('metrics', [
-            'course' => $course,
+            'course'      => $course,
             'enrollments' => $enrollments,
-            'count' => count($enrollments),
+            'count'       => count($enrollments),
         ]);
     }
 
@@ -116,21 +141,28 @@ class AdminController extends Controller
         return $this->redirect(Yii::$app->request->referrer ?: ['dashboard']);
     }
 
-    // ----- Gestión de Managers -----
-    public function actionManagers()
+    // ==================== GESTIÓN DE USUARIOS (MANAGERS Y REVISORES) ====================
+
+    // Listar managers y revisores de pagos
+    public function actionManagers($tab = 'managers')
     {
         $managers = ManagerTab::find()->all();
+        $payments = PaymentTab::find()->all();
+        
         return $this->render('managers', [
             'managers' => $managers,
-            'model' => new ManagerTab(),
-            'action' => 'list',
+            'payments' => $payments,
+            'model'    => new ManagerTab(),
+            'action'   => 'list',
+            'tab'      => $tab,
+            'type'     => 'manager',
         ]);
     }
 
+    // Crear manager
     public function actionCreateManager()
     {
         $model = new ManagerTab(['scenario' => 'create']);
-        
         if ($model->load(Yii::$app->request->post())) {
             $model->hash_pass = Yii::$app->security->generatePasswordHash($model->hash_pass);
             if ($model->save()) {
@@ -138,22 +170,25 @@ class AdminController extends Controller
                 return $this->redirect(['managers']);
             }
         }
-        
         $managers = ManagerTab::find()->all();
-        return $this->render('managers', [          // ← cambiar a 'managers'
+        $payments = PaymentTab::find()->all();
+        return $this->render('managers', [
             'managers' => $managers,
-            'model' => $model,
-            'action' => 'create',
+            'payments' => $payments,
+            'model'    => $model,
+            'action'   => 'create',
+            'tab'      => 'managers',
+            'type'     => 'manager',
         ]);
     }
 
+    // Actualizar manager
     public function actionUpdateManager($id)
     {
         $model = ManagerTab::findOne($id);
-        if (!$model) {
+        if ($model === null) {
             throw new \yii\web\NotFoundHttpException('Manager no encontrado.');
         }
-        
         if ($model->load(Yii::$app->request->post())) {
             if (!empty($model->hash_pass)) {
                 $model->hash_pass = Yii::$app->security->generatePasswordHash($model->hash_pass);
@@ -165,19 +200,106 @@ class AdminController extends Controller
                 return $this->redirect(['managers']);
             }
         }
-        
         $managers = ManagerTab::find()->all();
-        return $this->render('managers', [          // ← cambiar a 'managers'
+        $payments = PaymentTab::find()->all();
+        return $this->render('managers', [
             'managers' => $managers,
-            'model' => $model,
-            'action' => 'update',
+            'payments' => $payments,
+            'model'    => $model,
+            'action'   => 'update',
+            'tab'      => 'managers',
+            'type'     => 'manager',
         ]);
     }
 
+    // Eliminar manager
     public function actionDeleteManager($id)
     {
         ManagerTab::findOne($id)?->delete();
         Yii::$app->session->setFlash('success', 'Manager eliminado.');
         return $this->redirect(['managers']);
+    }
+
+    // Crear revisor de pagos
+    public function actionCreatePaymentManager()
+    {
+        $model = new PaymentTab(['scenario' => 'create']);
+        if ($model->load(Yii::$app->request->post())) {
+            $model->hash_pass = Yii::$app->security->generatePasswordHash($model->hash_pass);
+            if ($model->save()) {
+                Yii::$app->session->setFlash('success', 'Revisor de pagos creado.');
+                return $this->redirect(['managers', 'tab' => 'payments']);
+            }
+        }
+        $managers = ManagerTab::find()->all();
+        $payments = PaymentTab::find()->all();
+        return $this->render('managers', [
+            'managers' => $managers,
+            'payments' => $payments,
+            'model'    => $model,
+            'action'   => 'create',
+            'tab'      => 'payments',
+            'type'     => 'payment',
+        ]);
+    }
+
+    // Actualizar revisor de pagos
+    public function actionUpdatePaymentManager($id)
+    {
+        $model = PaymentTab::findOne($id);
+        if ($model === null) {
+            throw new \yii\web\NotFoundHttpException('Revisor no encontrado.');
+        }
+        if ($model->load(Yii::$app->request->post())) {
+            if (!empty($model->hash_pass)) {
+                $model->hash_pass = Yii::$app->security->generatePasswordHash($model->hash_pass);
+            } else {
+                $model->hash_pass = $model->getOldAttribute('hash_pass');
+            }
+            if ($model->save()) {
+                Yii::$app->session->setFlash('success', 'Revisor de pagos actualizado.');
+                return $this->redirect(['managers', 'tab' => 'payments']);
+            }
+        }
+        $managers = ManagerTab::find()->all();
+        $payments = PaymentTab::find()->all();
+        return $this->render('managers', [
+            'managers' => $managers,
+            'payments' => $payments,
+            'model'    => $model,
+            'action'   => 'update',
+            'tab'      => 'payments',
+            'type'     => 'payment',
+        ]);
+    }
+
+    // Eliminar revisor de pagos
+    public function actionDeletePaymentManager($id)
+    {
+        PaymentTab::findOne($id)?->delete();
+        Yii::$app->session->setFlash('success', 'Revisor de pagos eliminado.');
+        return $this->redirect(['managers', 'tab' => 'payments']);
+    }
+
+    // ==================== USUARIOS PÚBLICOS ====================
+
+    public function actionPublicUsers()
+    {
+        $users = \app\models\PublicUserTab::find()
+            ->orderBy(['id' => SORT_DESC])
+            ->all();
+        
+        return $this->render('public-users', ['users' => $users]);
+    }
+
+    public function actionDeletePublicUser($id)
+    {
+        $user = \app\models\PublicUserTab::findOne($id);
+        if ($user) {
+            \app\models\EnrollmentsTab::deleteAll(['user_id' => $user->id]);
+            $user->delete();
+            Yii::$app->session->setFlash('success', 'Usuario y sus inscripciones eliminados.');
+        }
+        return $this->redirect(['public-users']);
     }
 }

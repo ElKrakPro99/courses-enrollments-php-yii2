@@ -46,6 +46,7 @@ $config = [
                 // Rutas públicas
                 'cursos'                          => 'public-user/available-courses',
                 'curso/<id:\d+>'                  => 'public-user/course-data',
+                'api/user-by-ci/<ci:\d+>' => 'public-user/get-user-by-ci',
                 'inscripcion/<course_id:\d+>'      => 'public-user/enroll',
 
                 // Admin
@@ -62,6 +63,11 @@ $config = [
                 'admin/crear-manager' => 'admin/create-manager',
                 'admin/editar-manager/<id:\d+>' => 'admin/update-manager',
                 'admin/eliminar-manager/<id:\d+>' => 'admin/delete-manager',
+                'admin/usuarios-publicos'           => 'admin/public-users',
+                'admin/eliminar-usuario/<id:\d+>'   => 'admin/delete-public-user',
+                'admin/crear-payment-manager'           => 'admin/create-payment-manager',
+                'admin/editar-payment-manager/<id:\d+>' => 'admin/update-payment-manager',
+                'admin/eliminar-payment-manager/<id:\d+>' => 'admin/delete-payment-manager',
 
                 // Manager
                 'manager/login' => 'manager/login',
@@ -70,6 +76,14 @@ $config = [
                 'manager/crear-curso' => 'manager/create-course',
                 'manager/editar-curso/<id:\d+>' => 'manager/update-course',
                 'manager/metricas/<id:\d+>' => 'manager/metrics',
+
+                // Payment
+                'payment/login' => 'payment/login',
+                'payment/logout' => 'payment/logout',
+                'payment' => 'payment/dashboard',
+                'payment/aprobar/<id:\d+>' => 'payment/approve',
+                'payment/rechazar/<id:\d+>' => 'payment/reject',
+                'payment/ver-curso/<id:\d+>' => 'payment/view-course',
                 
                 // Ruta principal
                 ''                                => 'public-user/available-courses',

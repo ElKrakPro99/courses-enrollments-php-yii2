@@ -29,7 +29,7 @@ AppAsset::register($this);
 <div class="wrap">
     <?php
     NavBar::begin([
-        'brandLabel' => 'Sistema de Inscripcion',
+        'brandLabel' => 'CNEH - Sistema de Inscripcion',
         'brandUrl' => ['/cursos'],
         'options' => [
             'class' => 'navbar-expand-lg navbar-dark bg-dark',
@@ -37,7 +37,7 @@ AppAsset::register($this);
     ]);
 
     $menuItems = [
-        ['label' => 'Cursos', 'url' => ['/cursos']],
+        ['label' => 'Formaciones', 'url' => ['/cursos']],
     ];
 
     if (Yii::$app->user->isGuest) {
@@ -47,6 +47,7 @@ AppAsset::register($this);
             'items' => [
                 ['label' => 'Admin', 'url' => ['/admin/login']],
                 ['label' => 'Manager', 'url' => ['/manager/login']],
+                ['label' => 'Pagos', 'url' => ['/payment/login']],
             ],
         ];
     } else {
@@ -57,13 +58,20 @@ AppAsset::register($this);
         // Enlace al panel segun el rol
         if ($role === 'admin') {
             $menuItems[] = ['label' => 'Panel Admin', 'url' => ['/admin']];
+            $logoutUrl = ['/admin/logout'];
         } elseif ($role === 'manager') {
             $menuItems[] = ['label' => 'Panel Manager', 'url' => ['/manager']];
+            $logoutUrl = ['/manager/logout'];
+        } elseif ($role === 'payment') {
+            $menuItems[] = ['label' => 'Panel Pagos', 'url' => ['/payment']];
+            $logoutUrl = ['/payment/logout'];
+        } else {
+            $logoutUrl = ['/admin/logout'];
         }
 
         // Boton de salir con nombre de usuario y rol
         $menuItems[] = '<li class="nav-item">'
-            . Html::beginForm(['/admin/logout'], 'post', ['class' => 'd-flex'])
+            . Html::beginForm($logoutUrl, 'post', ['class' => 'd-flex'])
             . Html::submitButton(
                 'Salir (' . $username . ' - ' . strtoupper($role) . ')',
                 ['class' => 'btn btn-link nav-link logout']
@@ -103,7 +111,7 @@ AppAsset::register($this);
 
 <footer class="footer bg-light mt-5 py-3">
     <div class="container">
-        <span class="text-muted">Sistema de Inscripcion de Cursos &copy; <?= date('Y') ?></span>
+        <span class="text-muted">Sistema de Inscripcion para Formaciones&copy; <?= date('Y') ?></span>
     </div>
 </footer>
 

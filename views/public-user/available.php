@@ -4,7 +4,7 @@
 
 use yii\helpers\Html;
 
-$this->title = 'Cursos Disponibles';
+$this->title = 'formaciones Disponibles';
 ?>
 
 <div class="public-available-courses">
@@ -12,7 +12,7 @@ $this->title = 'Cursos Disponibles';
 
     <?php if (empty($courses)): ?>
         <div class="alert alert-info">
-            No hay cursos disponibles para inscripcion en este momento.
+            No hay Formaciones abiertas en este momento.
         </div>
     <?php else: ?>
         <div class="row">
@@ -27,12 +27,17 @@ $this->title = 'Cursos Disponibles';
                             <h5 class="card-title"><?= Html::encode($course->course_name) ?></h5>
                             <p class="card-text">
                                 <strong>Docente:</strong> <?= Html::encode($course->teacher_name) ?><br>
-                                <strong>Inscripcion:</strong> <?= $course->date_begin_enrollments ?> al <?= $course->date_end_enrollments ?><br>
-                                <strong>Clases:</strong> <?= $course->date_begin_course ?> al <?= $course->date_end_course ?><br>
+                                <strong>Inicio de clases:</strong> <?= $course->date_begin_course ?><br>
+                                <strong>Fin de clases:</strong> <?= $course->date_end_course ?><br>
                                 <?php if ($course->class_days): ?>
                                     <strong>Dias:</strong> <?= Html::encode($course->class_days) ?><br>
                                 <?php endif; ?>
                                 <strong>Tipo:</strong> <?= $course->payment_type === 'pago' ? 'Pago' : 'Libre' ?><br>
+                                
+<?php if ($course->payment_type === 'pago' && $course->amount): ?>
+    <strong>Monto:</strong> <?= $course->getFormattedAmount() ?><br>
+<?php endif; ?>
+                                
                                 <strong>Inscritos:</strong> <?= $course->enrollments_counter ?>
                             </p>
                             <?= Html::a('Ver detalles', ['course-data', 'id' => $course->id], ['class' => 'btn btn-info']) ?>

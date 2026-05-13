@@ -73,17 +73,25 @@ $this->title = 'Editar Curso: ' . $model->course_name;
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <?= $form->field($model, 'modality')->dropDownList([
                                 'presencial' => 'Presencial',
                                 'online' => 'Online',
                                 'mixto' => 'Mixto',
                             ]) ?>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <?= $form->field($model, 'payment_type')->dropDownList([
                                 'libre' => 'Libre',
                                 'pago' => 'Pago',
+                            ], ['id' => 'payment-type-select']) ?>
+                        </div>
+                        <div class="col-md-4" id="amount-field" style="display: <?= $model->payment_type === 'pago' ? 'block' : 'none' ?>;">
+                            <?= $form->field($model, 'amount')->textInput([
+                                'type' => 'number',
+                                'step' => '0.01',
+                                'min' => '0',
+                                'placeholder' => 'Ej: 150.00'
                             ]) ?>
                         </div>
                     </div>
@@ -99,3 +107,16 @@ $this->title = 'Editar Curso: ' . $model->course_name;
         </div>
     </div>
 </div>
+
+<?php
+$script = <<<JS
+$('#payment-type-select').on('change', function() {
+    if ($(this).val() === 'pago') {
+        $('#amount-field').slideDown();
+    } else {
+        $('#amount-field').slideUp();
+    }
+});
+JS;
+$this->registerJs($script);
+?>

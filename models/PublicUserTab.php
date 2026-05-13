@@ -22,6 +22,12 @@ use yii\db\ActiveRecord;
  */
 class PublicUserTab extends ActiveRecord
 {
+
+    const NATIONALITY_VENEZOLANO = 'venezolano';
+    const NATIONALITY_EXTRANJERO = 'extranjero';
+
+    public $voucher;
+
     public static function tableName()
     {
         return 'public_user_tab';
@@ -30,16 +36,19 @@ class PublicUserTab extends ActiveRecord
     public function rules()
     {
         return [
-            [['name', 'last_name', 'email'], 'required'],
+            [['name', 'last_name', 'email', 'ci', 'nationality'], 'required'],
             [['age', 'n_courses_enrollment', 'ci'], 'integer'],
             [['age'], 'integer', 'min' => 1, 'max' => 120],
-            [['ci'], 'integer', 'min' => 0, 'max' => 1000000000],  // ← NUEVO
-            [['ci'], 'unique', 'message' => 'Esta cédula ya está registrada.'],  // ← Único
+            [['ci'], 'integer', 'min' => 0, 'max' => 1000000000],
+            [['ci'], 'unique', 'message' => 'Esta cedula ya esta registrada.', 'on' => ['create']],
             [['name', 'last_name', 'public_entity'], 'string', 'max' => 100],
             [['phone'], 'string', 'max' => 20],
             [['email'], 'string', 'max' => 100],
             [['email'], 'email'],
+            [['nationality'], 'string', 'max' => 20],
+            [['nationality'], 'in', 'range' => [self::NATIONALITY_VENEZOLANO, self::NATIONALITY_EXTRANJERO]],
             [['phone'], 'match', 'pattern' => '/^[0-9+\-\(\) ]+$/'],
+            [['voucher'], 'file', 'skipOnEmpty' => true, 'extensions' => 'png, jpg, jpeg, pdf', 'maxSize' => 2 * 1024 * 1024],
         ];
     }
 
@@ -49,12 +58,14 @@ class PublicUserTab extends ActiveRecord
             'id'                    => 'ID',
             'name'                  => 'Nombre',
             'last_name'             => 'Apellido',
-            'phone'                 => 'Teléfono',
-            'email'                 => 'Correo electrónico',
+            'phone'                 => 'Telefono',
+            'email'                 => 'Correo electronico',
             'age'                   => 'Edad',
-            'ci'                    => 'Cédula de Identidad',  // ← NUEVO
-            'public_entity'         => 'Entidad pública',
+            'ci'                    => 'Cedula de Identidad',
+            'nationality'           => 'Nacionalidad',
+            'public_entity'         => 'Entidad publica',
             'n_courses_enrollment'  => 'Total cursos inscritos',
+            'voucher'               => 'Comprobante de pago', 
         ];
     }
 
@@ -67,4 +78,10 @@ class PublicUserTab extends ActiveRecord
     {
         return $this->name . ' ' . $this->last_name;
     }
+
+    public function isVenezolano()
+    {
+        return $this->nationality === self::NATIONALITY_VENEZOLANO;
+    }
+
 }

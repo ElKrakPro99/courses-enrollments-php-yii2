@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script de instalación para Sistema de Inscripción de Cursos (Yii2 Básico)
+# Script de instalación para Sistema de Inscripción de Cursos (Yii2-postgresql)
 # Versión: pre-0.1
 
 # =====================================================
@@ -36,6 +36,8 @@ DOMAIN=""
 PORT=""
 ADMIN_PASS=""
 ADMIN_HASH=""
+MANAGER_HASH=""   
+PAYMENT_HASH=""   
 
 # =====================================================
 # FUNCIONES UTILITARIAS
@@ -171,9 +173,22 @@ configure_system() {
     PORT=$(ask_value "Puerto HTTP" "80")
     ADMIN_PASS=$(ask_value "Contraseña del admin (usuario: admin)" "admin123")
 
+    # Generar hash para admin
     ADMIN_HASH=$(php -r "echo password_hash('$ADMIN_PASS', PASSWORD_BCRYPT);" 2>/dev/null)
     if [ -z "$ADMIN_HASH" ]; then
         ADMIN_HASH='$2y$13$8oX.tP5q8x6WGXOzYm0aJ.Yx9vN.m8hOeJlLkLRyAvmFQA1ZaBP7K'
+    fi
+
+    # Generar hash para manager (password fija: manager123)
+    MANAGER_HASH=$(php -r "echo password_hash('manager123', PASSWORD_BCRYPT);" 2>/dev/null)
+    if [ -z "$MANAGER_HASH" ]; then
+        MANAGER_HASH='$2y$13$8oX.tP5q8x6WGXOzYm0aJ.Yx9vN.m8hOeJlLkLRyAvmFQA1ZaBP7K'
+    fi
+
+    # Generar hash para payment (password fija: payment123)
+    PAYMENT_HASH=$(php -r "echo password_hash('payment123', PASSWORD_BCRYPT);" 2>/dev/null)
+    if [ -z "$PAYMENT_HASH" ]; then
+        PAYMENT_HASH='$2y$13$8oX.tP5q8x6WGXOzYm0aJ.Yx9vN.m8hOeJlLkLRyAvmFQA1ZaBP7K'
     fi
 
     print_success "Configuración guardada"
@@ -277,6 +292,7 @@ CREATE TABLE courses_tab (
     "date_end_course" DATE NOT NULL,
     "class_days" VARCHAR(100),
     "payment_type" VARCHAR(20) NOT NULL DEFAULT 'libre',
+    "amount" DECIMAL(10,2) DEFAULT NULL,
     "modality" VARCHAR(20) NOT NULL DEFAULT 'presencial',
     "teacher_name" VARCHAR(100) NOT NULL,
     CONSTRAINT chk_category CHECK ("category" IN ('curso', 'diplomado', 'taller', 'seminario')),
@@ -294,6 +310,7 @@ CREATE TABLE public_user_tab (
     "email" VARCHAR(100) NOT NULL,
     "age" INTEGER,
     "ci" INTEGER UNIQUE,
+    "nationality" VARCHAR(20) NOT NULL DEFAULT 'venezolano',
     "public_entity" VARCHAR(100),
     "n_courses_enrollment" INTEGER DEFAULT 0
 );
@@ -308,7 +325,17 @@ CREATE TABLE enrollments_tab (
     "counter_enrollments" INTEGER DEFAULT 0,
     "teacher_name" VARCHAR(100) NOT NULL,
     "status" VARCHAR(20) NOT NULL DEFAULT 'pending',
-    CONSTRAINT chk_status CHECK ("status" IN ('pending', 'confirmed', 'cancelled'))
+    "voucher_path" VARCHAR(500),
+    "payment_verified_by" INTEGER,
+    "payment_verified_at" TIMESTAMP,
+    CONSTRAINT chk_status CHECK ("status" IN ('pending', 'payment_pending', 'confirmed', 'cancelled'))
+);
+
+CREATE TABLE payment_tab (
+    id SERIAL PRIMARY KEY,
+    "user_nickname" VARCHAR(50) UNIQUE NOT NULL,
+    "hash_pass" VARCHAR(255) NOT NULL,
+    "role" VARCHAR(20) NOT NULL DEFAULT 'payment'
 );
 
 -- Tabla de referencia
@@ -324,14 +351,19 @@ ON CONFLICT DO NOTHING;
 
 -- Insertar manager por defecto (password: manager123)
 INSERT INTO manager_tab ("user_nickname", "hash_pass") 
-VALUES ('manager1', '\$2y\$13\$8oX.tP5q8x6WGXOzYm0aJ.Yx9vN.m8hOeJlLkLRyAvmFQA1ZaBP7K') 
+VALUES ('manager1', '$MANAGER_HASH') 
+ON CONFLICT DO NOTHING;
+
+-- Insertar usuario de pagos (password: payment123)
+INSERT INTO payment_tab ("user_nickname", "hash_pass", "role") 
+VALUES ('payment1', '$PAYMENT_HASH', 'payment')
 ON CONFLICT DO NOTHING;
 
 -- Insertar cursos de ejemplo con fechas vigentes
-INSERT INTO courses_tab ("course_name", "category", "date_begin_enrollments", "date_end_enrollments", "date_begin_course", "date_end_course", "class_days", "payment_type", "modality", "teacher_name") VALUES 
-('Curso de Yii2 Basico', 'curso', CURRENT_DATE - INTERVAL '1 day', CURRENT_DATE + INTERVAL '15 days', CURRENT_DATE + INTERVAL '16 days', CURRENT_DATE + INTERVAL '45 days', 'Lunes, Miercoles, Viernes', 'libre', 'online', 'Prof. Garcia'),
-('Taller de PostgreSQL', 'taller', CURRENT_DATE - INTERVAL '5 days', CURRENT_DATE + INTERVAL '10 days', CURRENT_DATE + INTERVAL '11 days', CURRENT_DATE + INTERVAL '25 days', 'Martes, Jueves', 'libre', 'presencial', 'Prof. Martinez'),
-('Diplomado en Desarrollo Web', 'diplomado', CURRENT_DATE, CURRENT_DATE + INTERVAL '30 days', CURRENT_DATE + INTERVAL '31 days', CURRENT_DATE + INTERVAL '120 days', 'Sabados', 'pago', 'mixto', 'Prof. Rodriguez')
+INSERT INTO courses_tab ("course_name", "category", "date_begin_enrollments", "date_end_enrollments", "date_begin_course", "date_end_course", "class_days", "payment_type", "amount", "modality", "teacher_name") VALUES 
+('Curso de Yii2 Basico', 'curso', CURRENT_DATE - INTERVAL '1 day', CURRENT_DATE + INTERVAL '15 days', CURRENT_DATE + INTERVAL '16 days', CURRENT_DATE + INTERVAL '45 days', 'Lunes, Miercoles, Viernes', 'libre', NULL, 'online', 'Prof. Garcia'),
+('Taller de PostgreSQL', 'taller', CURRENT_DATE - INTERVAL '5 days', CURRENT_DATE + INTERVAL '10 days', CURRENT_DATE + INTERVAL '11 days', CURRENT_DATE + INTERVAL '25 days', 'Martes, Jueves', 'libre', NULL, 'presencial', 'Prof. Martinez'),
+('Diplomado en Desarrollo Web', 'diplomado', CURRENT_DATE, CURRENT_DATE + INTERVAL '30 days', CURRENT_DATE + INTERVAL '31 days', CURRENT_DATE + INTERVAL '120 days', 'Sabados', 'pago', 250.00, 'mixto', 'Prof. Rodriguez')
 ON CONFLICT DO NOTHING;
 
 -- Otorgar permisos
@@ -344,6 +376,14 @@ EOF
     else
         print_error "Error al crear las tablas"
     fi
+
+    # ============================================
+    # CREAR DIRECTORIO PARA VOUCHERS
+    # ============================================
+    print_info "Creando directorio para comprobantes..."
+    mkdir -p "$APP_DIR/web/uploads/vouchers"
+    chmod 777 "$APP_DIR/web/uploads/vouchers"
+    print_success "Directorio de vouchers creado: $APP_DIR/web/uploads/vouchers"
 
     # Apache
     [ "$PORT" != "80" ] && ! grep -q "Listen $PORT" /etc/apache2/ports.conf && echo "Listen $PORT" >> /etc/apache2/ports.conf
@@ -380,7 +420,7 @@ RewriteRule . index.php [L]" > "$APP_DIR/web/.htaccess"
 # =====================================================
 # LIMPIEZA TOTAL
 # =====================================================
- ncleanup() {
+cleanup() {
     print_header "LIMPIEZA TOTAL"
 
     # Detectar valores
@@ -441,7 +481,8 @@ RewriteRule . index.php [L]" > "$APP_DIR/web/.htaccess"
     rm -f /var/log/apache2/enrollment-*.log*
 
     # Resetear variables
-    APP_DIR=""; DB_NAME=""; DB_USER=""; DB_PASS=""; DOMAIN=""; PORT=""; ADMIN_PASS=""; ADMIN_HASH=""
+    APP_DIR=""; DB_NAME=""; DB_USER=""; DB_PASS=""; DOMAIN=""; PORT=""; 
+    ADMIN_PASS=""; ADMIN_HASH=""; MANAGER_HASH=""; PAYMENT_HASH=""
 
     systemctl start apache2
     print_success "¡Limpieza completada! Ya puedes reinstalar."

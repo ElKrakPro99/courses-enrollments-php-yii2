@@ -22,6 +22,9 @@ use yii\db\ActiveRecord;
  * @property string $payment_type
  * @property string $modality
  * @property string $teacher_name
+ * @property string $payment_type
+ * @property float|null $amount
+ * @property string $modality
  *
  * @property EnrollmentsTab[] $enrollmentsTabs
  */
@@ -59,6 +62,10 @@ class CoursesTab extends ActiveRecord
             [['modality'], 'string', 'max' => 20],
             [['modality'], 'in', 'range' => [self::MODALITY_PRESENCIAL, self::MODALITY_ONLINE, self::MODALITY_MIXTO]],
             [['class_days'], 'string', 'max' => 100],
+            [['amount'], 'number', 'min' => 0],  // ← NUEVO
+            [['amount'], 'required', 'when' => function ($model) {
+                return $model->payment_type === self::PAYMENT_PAID;
+            }, 'message' => 'El monto es obligatorio para cursos de pago.'],
             [['date_end_enrollments', 'date_begin_enrollments'], 'validateEnrollmentDates'],
             [['date_end_course', 'date_begin_course'], 'validateCourseDates'],
         ];
@@ -97,6 +104,7 @@ class CoursesTab extends ActiveRecord
             'payment_type'            => 'Tipo de pago',
             'modality'                => 'Modalidad',
             'teacher_name'            => 'Docente',
+            'amount'                  => 'Monto (Bs.)',  // ← NUEVO
         ];
     }
 
@@ -129,5 +137,10 @@ class CoursesTab extends ActiveRecord
     public function getEnrollmentsTabs()
     {
         return $this->hasMany(EnrollmentsTab::class, ['course_id' => 'id']);
+    }
+
+    public function getFormattedAmount()
+    {
+        return $this->amount ? number_format($this->amount, 2, ',', '.') . ' Bs.' : null;
     }
 }

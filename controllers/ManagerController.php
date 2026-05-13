@@ -41,12 +41,13 @@ class ManagerController extends Controller
         if ($model->load(Yii::$app->request->post()) && $model->validate()) {
             $manager = ManagerTab::findByUsername($model->user_nickname);
             if ($manager && $manager->validatePassword($model->hash_pass)) {
-                $identity = new UserIdentity([
-                    'id' => $manager->id,
-                    'username' => $manager->user_nickname,
-                    'role' => 'manager',
-                    'model' => $manager,
-                ]);
+            $identity = new UserIdentity([
+                'id'       => 'manager-' . $manager->id,   // ← ID compuesto
+                'username' => $manager->user_nickname,
+                'role'     => 'manager',
+                'model'    => $manager,
+                'realId'   => $manager->id,
+            ]);
                 Yii::$app->user->login($identity, 86400);
                 Yii::$app->session->setFlash('success', 'Bienvenido Manager.');
                 return $this->redirect(['dashboard']);

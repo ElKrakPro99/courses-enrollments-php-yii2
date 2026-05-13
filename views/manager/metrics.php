@@ -4,13 +4,13 @@
 
 use yii\helpers\Html;
 
-$this->title = 'Métricas: ' . $course->course_name;
+$this->title = 'Metricas: ' . $course->course_name;
 ?>
 
 <div class="admin-metrics">
     <h1><?= Html::encode($this->title) ?></h1>
 
-    <!-- Filtros por estado (opcional, si agregaste el campo status) -->
+    <!-- Filtros por estado -->
     <div class="mb-3">
         <div class="btn-group" role="group">
             <?= Html::a('Todos', ['metrics', 'id' => $course->id], ['class' => 'btn btn-outline-secondary btn-sm']) ?>
@@ -25,7 +25,7 @@ $this->title = 'Métricas: ' . $course->course_name;
         <div class="col-md-3">
             <div class="card text-white bg-primary shadow">
                 <div class="card-body text-center">
-                    <h5 class="card-title">Total Inscritos</h5>
+                    <h5 class="card-title">Peticiones</h5>
                     <p class="card-text display-4"><?= $count ?></p>
                 </div>
             </div>
@@ -33,7 +33,7 @@ $this->title = 'Métricas: ' . $course->course_name;
         <div class="col-md-3">
             <div class="card text-white bg-success shadow">
                 <div class="card-body text-center">
-                    <h5 class="card-title">Formaciones disponibles Disponibles</h5>
+                    <h5 class="card-title">Inscripciones Aceptadas</h5>
                     <p class="card-text display-4"><?= $course->enrollments_counter ?></p>
                 </div>
             </div>
@@ -49,7 +49,7 @@ $this->title = 'Métricas: ' . $course->course_name;
         <div class="col-md-3">
             <div class="card text-white bg-warning shadow">
                 <div class="card-body text-center">
-                    <h5 class="card-title">Período</h5>
+                    <h5 class="card-title">Periodo de Inscripcion</h5>
                     <p class="card-text small">
                         <?= $course->date_begin_enrollments ?><br>
                         al <?= $course->date_end_enrollments ?>
@@ -68,19 +68,19 @@ $this->title = 'Métricas: ' . $course->course_name;
                 <tr>
                     <th>ID</th>
                     <th>CI</th>
+                    <th>Nacionalidad</th>
                     <th>Usuario</th>
                     <th>Email</th>
-                    <th>Teléfono</th>
+                    <th>Telefono</th>
                     <th>Edad</th>
                     <th>Entidad</th>
                     <th>Estado</th>
-                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($enrollments)): ?>
                     <tr>
-                        <td colspan="9" class="text-center text-muted py-4">
+                        <td colspan="10" class="text-center text-muted py-4">
                             <i class="fas fa-inbox fa-2x mb-2"></i><br>
                             No hay inscripciones registradas.
                         </td>
@@ -97,6 +97,19 @@ $this->title = 'Métricas: ' . $course->course_name;
                                     : '<span class="text-muted">N/A</span>' ?>
                             </td>
                             
+                            <!-- Nacionalidad -->
+                            <td>
+                                <?php if ($enrollment->publicUser && $enrollment->publicUser->nationality): ?>
+                                    <?php if ($enrollment->publicUser->nationality === 'venezolano'): ?>
+                                        <span class="badge bg-primary"><?= Html::encode($enrollment->publicUser->nationality) ?></span>
+                                    <?php else: ?>
+                                        <span class="badge bg-info"><?= Html::encode($enrollment->publicUser->nationality) ?></span>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <span class="text-muted">N/A</span>
+                                <?php endif; ?>
+                            </td>
+                            
                             <!-- Nombre completo -->
                             <td>
                                 <?= $enrollment->publicUser 
@@ -111,7 +124,7 @@ $this->title = 'Métricas: ' . $course->course_name;
                                     : '<span class="text-muted">N/A</span>' ?>
                             </td>
                             
-                            <!-- Teléfono -->
+                            <!-- Telefono -->
                             <td>
                                 <?= $enrollment->publicUser && $enrollment->publicUser->phone 
                                     ? Html::encode($enrollment->publicUser->phone) 
@@ -132,7 +145,7 @@ $this->title = 'Métricas: ' . $course->course_name;
                                     : '<span class="text-muted">N/A</span>' ?>
                             </td>
                             
-                            <!-- Estado de la inscripción -->
+                            <!-- Estado de la inscripcion -->
                             <td>
                                 <?php if (isset($enrollment->status)): ?>
                                     <?php
@@ -147,48 +160,7 @@ $this->title = 'Métricas: ' . $course->course_name;
                                     <span class="badge bg-secondary">N/A</span>
                                 <?php endif; ?>
                             </td>
-                            
-                            <!-- Acciones -->
-                            <td>
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <?php if (isset($enrollment->status) && $enrollment->status === 'pending'): ?>
-                                        <?= Html::a('✓', 
-                                            ['update-enrollment-status', 'id' => $enrollment->id, 'status' => 'confirmed'], 
-                                            [
-                                                'class' => 'btn btn-success',
-                                                'title' => 'Confirmar',
-                                                'data-method' => 'post',
-                                            ]
-                                        ) ?>
-                                        <?= Html::a('✗', 
-                                            ['update-enrollment-status', 'id' => $enrollment->id, 'status' => 'cancelled'], 
-                                            [
-                                                'class' => 'btn btn-warning',
-                                                'title' => 'Cancelar',
-                                                'data-method' => 'post',
-                                            ]
-                                        ) ?>
-                                    <?php elseif (isset($enrollment->status) && $enrollment->status === 'cancelled'): ?>
-                                        <?= Html::a('↺', 
-                                            ['update-enrollment-status', 'id' => $enrollment->id, 'status' => 'pending'], 
-                                            [
-                                                'class' => 'btn btn-info',
-                                                'title' => 'Reactivar',
-                                                'data-method' => 'post',
-                                            ]
-                                        ) ?>
-                                    <?php endif; ?>
-                                    
-                                    <?= Html::a('🗑', ['delete-enrollment', 'id' => $enrollment->id], [
-                                        'class' => 'btn btn-danger',
-                                        'title' => 'Eliminar',
-                                        'data' => [
-                                            'confirm' => '¿Estás seguro de eliminar esta inscripción?',
-                                            'method' => 'post',
-                                        ],
-                                    ]) ?>
-                                </div>
-                            </td>
+
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -196,7 +168,7 @@ $this->title = 'Métricas: ' . $course->course_name;
         </table>
     </div>
 
-    <!-- Pie de página -->
+    <!-- Pie de pagina -->
     <div class="d-flex justify-content-between mt-3">
         <div>
             <?= Html::a('← Volver al Dashboard', ['dashboard'], ['class' => 'btn btn-secondary']) ?>

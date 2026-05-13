@@ -11,7 +11,7 @@ use app\models\PublicUserTab;
 use yii\web\NotFoundHttpException;
 use yii\web\ForbiddenHttpException;
 
-class publicCourseService
+class PublicCourseService
 {
     /**
      * Obtiene los cursos cuyo periodo de inscripcion esta activo hoy.
@@ -61,16 +61,19 @@ class publicCourseService
      * @return bool
      * @throws \Exception
      */
-    public function enrollUser($user, $courseId)
+    public function enrollUser($user, $courseId, $voucherPath = null)
     {
         $course = $this->getAvailableCourseById($courseId);
 
-        // Verificar duplicado
+        // Determinar estado segun tipo de pago
+        if ($course->payment_type === CoursesTab::PAYMENT_PAID) {
+            $status = EnrollmentsTab::STATUS_PAYMENT_PENDING;
+        } else {
+            $status = EnrollmentsTab::STATUS_PENDING;
+        }
+
         $exists = EnrollmentsTab::find()
-            ->where([
-                'course_id' => $courseId,
-                'user_id'   => $user->id,
-            ])
+            ->where(['course_id' => $courseId, 'user_id' => $user->id])
             ->andWhere(['!=', 'status', EnrollmentsTab::STATUS_CANCELLED])
             ->exists();
 
@@ -79,27 +82,28 @@ class publicCourseService
         }
 
         $transaction = Yii::$app->db->beginTransaction();
-
         try {
             $enrollment = new EnrollmentsTab();
-            $enrollment->course_id              = $course->id;
-            $enrollment->user_id                = $user->id;
+            $enrollment->course_id = $course->id;
+            $enrollment->user_id = $user->id;
             $enrollment->date_begin_enrollments = $course->date_begin_enrollments;
-            $enrollment->date_end_enrollments   = $course->date_end_enrollments;
-            $enrollment->teacher_name           = $course->teacher_name;
-            $enrollment->counter_enrollments    = 1;
-            $enrollment->status                 = EnrollmentsTab::STATUS_PENDING;
+            $enrollment->date_end_enrollments = $course->date_end_enrollments;
+            $enrollment->teacher_name = $course->teacher_name;
+            $enrollment->counter_enrollments = 1;
+            $enrollment->status = $status;
+            $enrollment->voucher_path = $voucherPath;  // ← NUEVO
 
             if (!$enrollment->save()) {
-                throw new \Exception('Error al registrar la inscripcion: ' . json_encode($enrollment->errors));
+                throw new \Exception('Error: ' . json_encode($enrollment->errors));
             }
 
-            $user->updateCounters(['n_courses_enrollment' => 1]);
-            $course->updateCounters(['enrollments_counter' => 1]);
+            if ($status === EnrollmentsTab::STATUS_PENDING) {
+                $user->updateCounters(['n_courses_enrollment' => 1]);
+                $course->updateCounters(['enrollments_counter' => 1]);
+            }
 
             $transaction->commit();
-            return true;
-
+            return $status;
         } catch (\Exception $e) {
             $transaction->rollBack();
             throw $e;

@@ -8,33 +8,64 @@ use yii\web\IdentityInterface;
 
 class UserIdentity extends BaseObject implements IdentityInterface
 {
-    public $id;
+
+    public $id;          // ID compuesto: "admin-1", "manager-1", "payment-1"
     public $username;
     public $role;
     public $model;
+    public $realId;      // ID real en su tabla
 
     public static function findIdentity($id)
     {
-        $admin = AdminTab::findOne($id);
-        if ($admin) {
-            return new static([
-                'id'       => $admin->id,
-                'username' => $admin->user_nickname,
-                'role'     => 'admin',
-                'model'    => $admin,
-            ]);
+        // El ID es compuesto: "rol-id" (ej: "admin-1", "payment-1")
+        $parts = explode('-', $id);
+        
+        if (count($parts) !== 2) {
+            return null;
         }
-        $manager = ManagerTab::findOne($id);
-        if ($manager) {
-            return new static([
-                'id'       => $manager->id,
-                'username' => $manager->user_nickname,
-                'role'     => 'manager',
-                'model'    => $manager,
-            ]);
+        
+        $role = $parts[0];
+        $realId = $parts[1];
+
+        if ($role === 'admin') {
+            $admin = AdminTab::findOne($realId);
+            if ($admin) {
+                return new static([
+                    'id'       => 'admin-' . $admin->id,
+                    'username' => $admin->user_nickname,
+                    'role'     => 'admin',
+                    'model'    => $admin,
+                    'realId'   => $admin->id,
+                ]);
+            }
+        } elseif ($role === 'manager') {
+            $manager = ManagerTab::findOne($realId);
+            if ($manager) {
+                return new static([
+                    'id'       => 'manager-' . $manager->id,
+                    'username' => $manager->user_nickname,
+                    'role'     => 'manager',
+                    'model'    => $manager,
+                    'realId'   => $manager->id,
+                ]);
+            }
+        } elseif ($role === 'payment') {
+            $payment = PaymentTab::findOne($realId);
+            if ($payment) {
+                return new static([
+                    'id'       => 'payment-' . $payment->id,
+                    'username' => $payment->user_nickname,
+                    'role'     => 'payment',
+                    'model'    => $payment,
+                    'realId'   => $payment->id,
+                ]);
+            }
         }
+        
         return null;
     }
+
+    // ... resto igual ..
 
     public static function findIdentityByAccessToken($token, $type = null)
     {
@@ -66,9 +97,8 @@ class UserIdentity extends BaseObject implements IdentityInterface
         return $this->role === 'manager';
     }
 
-    // Getter para acceder a user_nickname directamente desde la identidad
-    public function getUserNickname()
+    public function isPayment()
     {
-        return $this->model->user_nickname ?? $this->username;
+        return $this->role === 'payment';
     }
 }

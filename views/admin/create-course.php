@@ -73,18 +73,29 @@ $this->title = 'Crear nueva Formacion';
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <?= $form->field($model, 'modality')->dropDownList([
                                 'presencial' => 'Presencial',
                                 'online' => 'Online',
                                 'mixto' => 'Mixto',
                             ], ['prompt' => 'Seleccione...']) ?>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <?= $form->field($model, 'payment_type')->dropDownList([
                                 'libre' => 'Libre',
                                 'pago' => 'Pago',
-                            ], ['prompt' => 'Seleccione...']) ?>
+                            ], [
+                                'prompt' => 'Seleccione...',
+                                'id' => 'payment-type-select'
+                            ]) ?>
+                        </div>
+                        <div class="col-md-4" id="amount-field" style="display: none;">
+                            <?= $form->field($model, 'amount')->textInput([
+                                'type' => 'number',
+                                'step' => '0.01',
+                                'min' => '0',
+                                'placeholder' => 'Ej: 150.00'
+                            ]) ?>
                         </div>
                     </div>
                 </div>
@@ -99,3 +110,22 @@ $this->title = 'Crear nueva Formacion';
         </div>
     </div>
 </div>
+
+<?php
+$script = <<<JS
+// Mostrar/ocultar campo monto segun tipo de pago
+$('#payment-type-select').on('change', function() {
+    if ($(this).val() === 'pago') {
+        $('#amount-field').slideDown();
+    } else {
+        $('#amount-field').slideUp();
+    }
+});
+
+// Mostrar si ya esta seleccionado pago al cargar
+if ($('#payment-type-select').val() === 'pago') {
+    $('#amount-field').show();
+}
+JS;
+$this->registerJs($script);
+?>

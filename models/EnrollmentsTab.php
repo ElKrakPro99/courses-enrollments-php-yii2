@@ -27,6 +27,7 @@ class EnrollmentsTab extends ActiveRecord
     const STATUS_PENDING = 'pending';
     const STATUS_CONFIRMED = 'confirmed';
     const STATUS_CANCELLED = 'cancelled';
+    const STATUS_PAYMENT_PENDING = 'payment_pending';
 
     public static function tableName()
     {
@@ -42,8 +43,7 @@ class EnrollmentsTab extends ActiveRecord
             [['teacher_name'], 'string', 'max' => 100],
             [['status'], 'string', 'max' => 20],
             [['status'], 'default', 'value' => self::STATUS_PENDING],
-            [['status'], 'in', 'range' => [self::STATUS_PENDING, self::STATUS_CONFIRMED, self::STATUS_CANCELLED]],
-            [['course_id'], 'exist', 
+            [['status'], 'in', 'range' => [self::STATUS_PENDING, self::STATUS_PAYMENT_PENDING, self::STATUS_CONFIRMED, self::STATUS_CANCELLED]],            [['course_id'], 'exist', 
                 'skipOnError'     => true, 
                 'targetClass'     => CoursesTab::class, 
                 'targetAttribute' => ['course_id' => 'id']
@@ -53,6 +53,9 @@ class EnrollmentsTab extends ActiveRecord
                 'targetClass'     => PublicUserTab::class, 
                 'targetAttribute' => ['user_id' => 'id']
             ],
+            [['voucher_path'], 'string', 'max' => 500],
+            [['payment_verified_by'], 'integer'],
+            [['payment_verified_at'], 'safe']
         ];
     }
 
@@ -67,6 +70,9 @@ class EnrollmentsTab extends ActiveRecord
             'counter_enrollments'    => 'Contador',
             'teacher_name'           => 'Docente',
             'status'                 => 'Estado',
+            'voucher_path' => 'Comprobante',
+            'payment_verified_by' => 'Verificado por',
+            'payment_verified_at' => 'Fecha verificacion'
         ];
     }
 
@@ -74,6 +80,7 @@ class EnrollmentsTab extends ActiveRecord
     {
         $labels = [
             self::STATUS_PENDING => 'Pendiente',
+            self::STATUS_PAYMENT_PENDING => 'Pago Pendiente',  // ← Agregar
             self::STATUS_CONFIRMED => 'Confirmado',
             self::STATUS_CANCELLED => 'Cancelado',
         ];
